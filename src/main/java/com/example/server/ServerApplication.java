@@ -1,5 +1,7 @@
 package com.example.server;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -7,14 +9,14 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Repository;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -86,6 +88,7 @@ class BeerCommandLineRunner implements CommandLineRunner {
     }
 }
 
+@CrossOrigin(origins = "http://localhost:3000")
 @RestController
 class BeerController {
 
@@ -96,10 +99,29 @@ class BeerController {
     }
 
     @GetMapping("/good-beers")
-    @CrossOrigin(origins = "http://localhost:3000")
     public Collection<Beer> goodBeers() {
 
         return repository.findAll().stream().filter(this::isGreat).collect(Collectors.toList());
+    }
+
+    @GetMapping("/beers")
+    public Collection<Beer> beers() {
+
+        return repository.findAll().stream().collect(Collectors.toList());
+    }
+
+    @PostMapping("/add-beer")
+    public void addBeers(@RequestBody String name) {
+
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            Map<String, String> map = new HashMap<String, String>();
+            map = mapper.readValue(name, new TypeReference<Map<String, String>>() {});
+            repository.save(new Beer(map.get("name")));
+            repository.findAll().forEach(System.out::println);
+        } catch (Exception e) {
+            System.out.println(e);
+        }
     }
 
     public boolean isGreat(Beer beer) {
